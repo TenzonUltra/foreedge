@@ -18,7 +18,7 @@ import SwiftUI
         defer { try? FileManager.default.removeItem(at: directory) }
         let inputs = Array(CommandLine.arguments.dropFirst())
         check(inputs.isEmpty || inputs.count == 2, "Pass either no paths or two read-only test PDFs")
-        let urls = inputs.isEmpty ? [directory.appendingPathComponent("Geometry.pdf"), directory.appendingPathComponent("Topology.pdf")]
+        let urls = inputs.isEmpty ? [directory.appendingPathComponent("Document A.pdf"), directory.appendingPathComponent("Document B.pdf")]
             : inputs.map { URL(fileURLWithPath: $0) }
         // User-supplied books are only opened; fixture generation stays inside the temporary directory.
         for url in inputs.isEmpty ? urls : [] {
@@ -75,14 +75,14 @@ import SwiftUI
         second.newTab(); second.reader.panel = nil; second.reader.open(urls[1])
         check(await ready(workspace), "New tab opens second book")
         second.reader.go(to: 51); try await settle()
-        let topologyPosition = second.reader.captureLocation()!
-        let topologyTab = second.activeTabID, geometryTab = second.tabs[0].id
-        second.selectTab(geometryTab)
+        let alternatePosition = second.reader.captureLocation()!
+        let alternateTab = second.activeTabID, initialTab = second.tabs[0].id
+        second.selectTab(initialTab)
         check(await ready(workspace), "Tab restores original book")
-        near(second.reader.captureLocation()!, secondPosition, "Tab keeps independent geometry position")
-        second.selectTab(topologyTab)
+        near(second.reader.captureLocation()!, secondPosition, "Tab keeps independent initial position")
+        second.selectTab(alternateTab)
         check(await ready(workspace), "Tab switches back")
-        near(second.reader.captureLocation()!, topologyPosition, "Tab keeps topology position")
+        near(second.reader.captureLocation()!, alternatePosition, "Tab keeps alternate position")
         workspace.split(.vertical); check(await ready(workspace), "Third pane")
         workspace.focus(first.id); workspace.split(.vertical); check(await ready(workspace), "Fourth pane")
         workspace.split(.horizontal); check(workspace.panes.count == 4, "Four-pane cap")
@@ -164,8 +164,8 @@ import SwiftUI
         workspace.reader.go(to: 7); try await settle()
         workspace.switchWorkspace(firstWorkspaceID); check(await ready(workspace), "Restore saved desk")
         check(workspace.panes.count == 4 && workspace.layout == savedLayout, "Workspace restores split tree and ratio")
-        let geometryReaders = workspace.panes.filter { $0.reader.recordID == firstPosition.bookID }
-        check(geometryReaders.allSatisfy { $0.reader.book?.document === geometryReaders.first?.reader.book?.document }, "Concurrent restore deduplicates native document loading")
+        let matchingReaders = workspace.panes.filter { $0.reader.recordID == firstPosition.bookID }
+        check(matchingReaders.allSatisfy { $0.reader.book?.document === matchingReaders.first?.reader.book?.document }, "Concurrent restore deduplicates native document loading")
         check(workspace.context.activeScope == "collection:\(collection)", "Workspace restores collection scope")
         for pane in workspace.panes {
             check(pane.reader.backHistory.count == histories[pane.id], "Workspace restores per-pane history")

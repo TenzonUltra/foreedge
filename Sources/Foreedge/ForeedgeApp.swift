@@ -24,7 +24,7 @@ struct ForeedgeApp: App {
                 .onOpenURL { workspace.reader.openReferenceURL($0) }
                 .onAppear {
                     appDelegate.workspace = workspace
-                    workspace.context.startCatalogue(defaultFolder: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents/PDFs"))
+                    workspace.context.startCatalogue()
                 }
         }
         .defaultSize(width: 900, height: 960)

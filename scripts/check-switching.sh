@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [ "$#" -ne 1 ]; then echo "Usage: $0 /path/to/Books" >&2; exit 2; fi
+if [ "$#" -ne 1 ]; then echo "Usage: $0 /path/to/pdf-folder" >&2; exit 2; fi
 mkdir -p "$project_root/.build/switch-check"
 sources=()
 for source in "$project_root"/Sources/Foreedge/*.swift; do

@@ -12,7 +12,7 @@ enum CatalogueCheck {
         let booksFolder = folder.appendingPathComponent("Books", isDirectory: true)
         let nested = booksFolder.appendingPathComponent("Nested", isDirectory: true)
         try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
-        let names = ["Sample-A.pdf", "Sample-B.pdf", "Sample-C.PDF", "Algebra.pdf"]
+        let names = ["Sample A.pdf", "Sample B.pdf", "Sample C.PDF", "Sample D.pdf"]
         var urls: [URL] = []
         for (index, name) in names.enumerated() {
             let url = (index == 2 ? nested : booksFolder).appendingPathComponent(name)
@@ -40,44 +40,44 @@ enum CatalogueCheck {
         let firstBook = session.library.books.first { $0.title == names[0] }!
         let secondBook = session.library.books.first { $0.title == names[1] }!
         let thirdBook = session.library.books.first { $0.title == names[2] }!
-        let topology = session.createCollection("Topology")!
+        let primaryCollection = session.createCollection("Collection A")!
         let reading = session.createCollection("Current Reading")!
-        session.setMembership([firstBook.id, thirdBook.id], collectionID: topology, included: true)
+        session.setMembership([firstBook.id, thirdBook.id], collectionID: primaryCollection, included: true)
         session.setMembership([firstBook.id, secondBook.id], collectionID: reading, included: true)
-        check(session.library.books(in: "collection:\(topology)").count == 2, "Collection filtering")
+        check(session.library.books(in: "collection:\(primaryCollection)").count == 2, "Collection filtering")
         check(session.library.collections.allSatisfy { $0.bookIDs.contains(firstBook.id) }, "Overlapping memberships share identity")
-        check(session.createCollection(" topology ") == nil, "Collection names are trimmed and case-insensitive")
-        session.renameCollection(topology, to: "Topology Seminar")
-        check(session.library.collections.first { $0.id == topology }?.name == "Topology Seminar", "Rename preserves collection ID")
-        session.selectScope("collection:\(topology)")
-        check(session.library.books(in: session.activeScope, matching: "l smth").first?.id == firstBook.id, "Fuzzy title matching")
-        check(session.library.books(in: session.activeScope, matching: "secondBook").isEmpty, "Search respects selected scope")
+        check(session.createCollection(" collection a ") == nil, "Collection names are trimmed and case-insensitive")
+        session.renameCollection(primaryCollection, to: "Collection One")
+        check(session.library.collections.first { $0.id == primaryCollection }?.name == "Collection One", "Rename preserves collection ID")
+        session.selectScope("collection:\(primaryCollection)")
+        check(session.library.books(in: session.activeScope, matching: "smp a").first?.id == firstBook.id, "Fuzzy title matching")
+        check(session.library.books(in: session.activeScope, matching: "sample b").isEmpty, "Search respects selected scope")
 
         let view = ReaderPDFView(frame: CGRect(x: 0, y: 0, width: 820, height: 900))
         view.displayMode = .singlePageContinuous; view.displayDirection = .vertical; view.displayBox = .mediaBox
         let window = NSWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false; window.contentView = view; window.orderBack(nil)
         session.openBook(firstBook.id); check(await wait { !session.isOpening }, "Open discovered book"); attach(session, view)
-        let leeDocument = session.book!.document
+        let firstDocument = session.book!.document
         session.go(to: 6); session.setMark("a")
-        let leePosition = session.captureLocation()!
+        let firstPosition = session.captureLocation()!
         session.openBook(secondBook.id); check(await wait { !session.isOpening }, "Switch book"); attach(session, view)
         session.go(to: 3)
-        let frankelPosition = session.captureLocation()!
+        let secondPosition = session.captureLocation()!
         session.openBook(firstBook.id); check(await wait { !session.isOpening }, "Switch back"); attach(session, view)
-        check(session.lastOpenUsedCache && session.book?.document === leeDocument, "Warm switch reuses native document")
-        near(session.captureLocation()!, leePosition, "Sample A position restored")
+        check(session.lastOpenUsedCache && session.book?.document === firstDocument, "Warm switch reuses native document")
+        near(session.captureLocation()!, firstPosition, "First position restored")
         check(session.visibleMarks.contains { $0.symbol == "a" }, "Marks retained across collections and switches")
-        session.openBook(secondBook.id); check(await wait { !session.isOpening }, "Reopen Sample B"); attach(session, view)
-        near(session.captureLocation()!, frankelPosition, "Sample B position restored independently")
+        session.openBook(secondBook.id); check(await wait { !session.isOpening }, "Reopen second book"); attach(session, view)
+        near(session.captureLocation()!, secondPosition, "Second position restored independently")
         session.openBook(thirdBook.id); check(await wait { !session.isOpening }, "Open third book"); attach(session, view)
-        let algebra = session.library.books.first { $0.title == names[3] }!
-        session.openBook(algebra.id); check(await wait { !session.isOpening }, "Open fourth book"); attach(session, view)
+        let fourthBook = session.library.books.first { $0.title == names[3] }!
+        session.openBook(fourthBook.id); check(await wait { !session.isOpening }, "Open fourth book"); attach(session, view)
         check(session.documentPool.count == 3, "Native document cache has three-entry cap")
         check(session.documentPool.sourceBytes <= session.documentPool.byteBudget, "Cache source-byte budget")
         session.openBook(firstBook.id); check(await wait { !session.isOpening }, "Reopen evicted book"); attach(session, view)
-        check(!session.lastOpenUsedCache && session.book?.document !== leeDocument, "LRU evicts least-recent document")
-        near(session.captureLocation()!, leePosition, "Eviction does not discard reading position")
+        check(!session.lastOpenUsedCache && session.book?.document !== firstDocument, "LRU evicts least-recent document")
+        near(session.captureLocation()!, firstPosition, "Eviction does not discard reading position")
         let oldDocument = session.book!.document
         try (Data(contentsOf: urls[0]) + Data("\n% updated\n".utf8)).write(to: urls[0])
         session.openBook(firstBook.id); check(await wait { !session.isOpening }, "Reopen changed PDF"); attach(session, view)
@@ -85,11 +85,11 @@ enum CatalogueCheck {
         check(session.captureLocation()!.page == 0, "Changed PDF does not restore stale position")
 
         // Rename during a library scan: collection membership, marks, and identity survive.
-        let renamed = booksFolder.appendingPathComponent("Sample-A-Renamed.pdf")
+        let renamed = booksFolder.appendingPathComponent("Sample A Renamed.pdf")
         try FileManager.default.moveItem(at: urls[0], to: renamed)
         session.refreshLibrary(); check(await wait { !session.isScanning }, "Rescan moved file")
         check(session.library.books.count == 4 && session.library.books.first(where: { $0.id == firstBook.id })?.path == renamed.path, "Rename reconnects identity")
-        check(session.library.collections.first { $0.id == topology }!.bookIDs.contains(firstBook.id), "Rename retains collection membership")
+        check(session.library.collections.first { $0.id == primaryCollection }!.bookIDs.contains(firstBook.id), "Rename retains collection membership")
         try FileManager.default.removeItem(at: urls[1])
         session.refreshLibrary(); check(await wait { !session.isScanning }, "Rescan missing file")
         check(session.library.books.first { $0.id == secondBook.id }?.missing == true, "Missing files remain visible")
@@ -104,10 +104,10 @@ enum CatalogueCheck {
         session.refreshLibrary(); session.cancelScan()
         try? await Task.sleep(nanoseconds: 100_000_000)
         check(!session.isScanning && session.library.books.count == 4, "Canceled scan cannot apply stale results")
-        session.selectScope("collection:\(topology)")
+        session.selectScope("collection:\(primaryCollection)")
         session.flush()
         let restored = ReaderSession(store: try LibraryStore(url: databaseURL))
-        check(restored.library.collections.count == 1 && restored.activeScope == "collection:\(topology)", "Collections and scope survive restart")
+        check(restored.library.collections.count == 1 && restored.activeScope == "collection:\(primaryCollection)", "Collections and scope survive restart")
         check(restored.library.marks.count == session.library.marks.count, "Collection persistence preserves existing marks")
         window.orderOut(nil); window.close()
 
@@ -156,7 +156,7 @@ enum CatalogueCheck {
         check(await wait { ui.attachedSheet != nil }, "Quick picker presents")
         try? await Task.sleep(nanoseconds: 200_000_000)
         guard let sheet = ui.attachedSheet, let editor = sheet.firstResponder as? NSTextView else { fatalError("Quick picker must focus search") }
-        editor.insertText("thirdBook", replacementRange: NSRange(location: NSNotFound, length: 0))
+        editor.insertText("sample c", replacementRange: NSRange(location: NSNotFound, length: 0))
         try? await Task.sleep(nanoseconds: 100_000_000)
         sheet.sendEvent(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: sheet.windowNumber, context: nil, characters: "\r", charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36)!)
         check(await wait { restored.recordID == thirdBook.id && !restored.isOpening }, "Quick picker opens typed match")

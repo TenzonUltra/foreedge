@@ -15,22 +15,22 @@ import SwiftUI
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("Foreedge-search-\(UUID())")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
-        let a = folder.appendingPathComponent("Smooth.pdf"), b = folder.appendingPathComponent("Finite.pdf")
+        let a = folder.appendingPathComponent("Primary.pdf"), b = folder.appendingPathComponent("Secondary.pdf")
         try fixture([
             Array(repeating: "Vector spaces are useful structures.", count: 18).joined(separator: "\n"),
-            "A Lie\ngroup has smooth operations.",
-            "Finite groups may be discrete.",
-            "Diffeomor-\nphisms preserve smooth structure.",
-            "A Lie algebra accompanies a smooth group.",
+            "A vector\nspace has useful operations.",
+            "Metric spaces may be complete.",
+            "Representa-\ntions preserve structure.",
+            "A vector field accompanies a metric space.",
             "A suﬃcient condition is useful."
         ], at: a)
-        try fixture(["The rare space is a finite simple group.", "Some other unrelated text."], at: b)
+        try fixture(["A rare space appears in this document.", "Some other unrelated text."], at: b)
         let firstBytes = try Data(contentsOf: a), secondBytes = try Data(contentsOf: b)
         let indexURL = folder.appendingPathComponent("Search.sqlite")
         let index = SearchIndex(url: indexURL)
         let firstID = UUID(), secondID = UUID()
-        let aDoc = SearchDocument(source: .file(a), bookID: firstID, title: "Smooth")
-        let bDoc = SearchDocument(source: .file(b), bookID: secondID, title: "Finite")
+        let aDoc = SearchDocument(source: .file(a), bookID: firstID, title: "Primary")
+        let bDoc = SearchDocument(source: .file(b), bookID: secondID, title: "Secondary")
         let aKey = try await index.prepare(aDoc)
         _ = try await index.prepare(aDoc); _ = try await index.prepare(aDoc)
         var result = try await completed(index, query: "vector space", docs: [aKey])
@@ -47,12 +47,12 @@ import SwiftUI
             }
         }
         result = try await index.search("rare space", documents: [aKey])
-        check(result.broader && !result.hits.isEmpty && result.hits.allSatisfy { $0.kind == .broader && !$0.matchedWords.contains("monster") }, "Missing concept yields explicitly broader shared-word results")
+        check(result.broader && !result.hits.isEmpty && result.hits.allSatisfy { $0.kind == .broader && !$0.matchedWords.contains("rare") }, "Missing concept yields explicitly broader shared-word results")
         check(try await index.search("qzxxnonexistent", documents: [aKey]).hits.isEmpty, "No evidence produces no result")
         result = try await index.search("representation", documents: [aKey])
         check(result.hits.first?.page == 3, "Dehyphenation and word forms find the correct page")
         let selected = display.page(at: 3)!.selection(for: NSRange(location: result.hits[0].offset, length: result.hits[0].length))!.string!
-        check(selected.contains("Diffeomor") && selected.contains("phisms"), "Dehyphenated matches retain original PDF offsets")
+        check(selected.contains("Representa") && selected.contains("tions"), "Dehyphenated matches retain original PDF offsets")
         result = try await index.search("sufficient", documents: [aKey])
         check(result.hits.first?.page == 5, "Ligature normalization finds text")
         let normalized = SearchText.matches(marked: "A \u{e000}sufficient\u{e001} condition", raw: "A suﬃcient condition")
@@ -85,11 +85,11 @@ import SwiftUI
         defer { window.orderOut(nil); window.close() }
         let reader = workspace.reader
         reader.open(b); check(await ready(reader), "Open second book for catalogue")
-        let finiteID = reader.currentRecord!.id
+        let secondaryID = reader.currentRecord!.id
         reader.open(a); check(await ready(reader), "Open first book for reading")
-        let smoothID = reader.currentRecord!.id
+        let primaryID = reader.currentRecord!.id
         let collection = reader.context.createCollection("Study")!
-        reader.context.setMembership([smoothID,finiteID], collectionID: collection, included: true)
+        reader.context.setMembership([primaryID,secondaryID], collectionID: collection, included: true)
         reader.fitWidth(); reader.pdfView!.scaleFactor *= 0.8
         let manualScale = reader.pdfView!.scaleFactor
         ReaderCommand.find.run(in: reader)
@@ -118,12 +118,12 @@ import SwiftUI
         check(editor != nil, "Find focuses native text input")
         editor!.insertText("rare space", replacementRange: NSRange(location: NSNotFound, length: 0))
         check(await wait { !reader.search.isSearching && !reader.search.hits.isEmpty }, "Collection search delivers results")
-        check(reader.search.hits.first?.bookID == finiteID, "Picker searches current collection")
+        check(reader.search.hits.first?.bookID == secondaryID, "Picker searches current collection")
         sendReturn(window.attachedSheet!)
-        check(await wait { !reader.isOpening && reader.currentRecord?.id == finiteID }, "Return opens result in another book")
+        check(await wait { !reader.isOpening && reader.currentRecord?.id == secondaryID }, "Return opens result in another book")
         try await settle()
         check(reader.pdfView?.currentSelection?.string?.lowercased() == "rare space", "Cross-book result highlights the matching phrase")
-        reader.back(); check(await wait { !reader.isOpening && reader.currentRecord?.id == smoothID }, "Back returns to source book")
+        reader.back(); check(await wait { !reader.isOpening && reader.currentRecord?.id == primaryID }, "Back returns to source book")
         try await settle()
         check(reader.captureLocation()?.page == position.page, "Search preserves return location")
         ReaderCommand.findCollection.run(in: reader)
@@ -132,10 +132,10 @@ import SwiftUI
         (window.attachedSheet!.firstResponder as! NSTextView).insertText("rare space", replacementRange: NSRange(location: NSNotFound, length: 0))
         check(await wait { !reader.search.isSearching && !reader.search.hits.isEmpty }, "Cached collection results ready")
         sendReturn(window.attachedSheet!, beside: true)
-        check(await wait { workspace.panes.count == 2 && !workspace.reader.isOpening && workspace.reader.currentRecord?.id == finiteID }, "Command-Return opens result beside")
+        check(await wait { workspace.panes.count == 2 && !workspace.reader.isOpening && workspace.reader.currentRecord?.id == secondaryID }, "Command-Return opens result beside")
         try await settle()
-        check(reader.currentRecord?.id == smoothID && workspace.reader.pdfView?.currentSelection?.string?.lowercased() == "rare space", "Beside leaves original book in place")
-        reader.context.setMembership([finiteID], collectionID: collection, included: false)
+        check(reader.currentRecord?.id == primaryID && workspace.reader.pdfView?.currentSelection?.string?.lowercased() == "rare space", "Beside leaves original book in place")
+        reader.context.setMembership([secondaryID], collectionID: collection, included: false)
         check(reader.searchDocuments(scope: .collection).count == 1, "Collection changes constrain search scope")
 
         // Changing a source invalidates its index, rather than returning old offsets.

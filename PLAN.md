@@ -57,7 +57,7 @@ Milestone 2 is partially implemented for performance testing: file picker, conti
 ## Decisions for the next discussion
 
 - Record the test Mac and display in detail. Setup host: Apple silicon, macOS 14.2.1, Apple Swift 5.10, Command Line Tools; full Xcode is not installed. Initial deployment target: macOS 14.
-- Four books from Documents/PDFs now provide real-world samples, alongside generated rendering and 1,000-page navigation fixtures. Add a large scanned book when available.
+- Local sample documents supplement the generated rendering and navigation fixtures. Add a large synthetic scanned fixture when available.
 - Books currently open in place. Managed imports and additional reading layouts remain deferred.
 
 The app opens real PDFs and retains a generated baseline for comparison. Three shared base maps are cached once, while Adaptive prepares visible pages with bounded work and rejects stale results after document switches. Page overlays preserve PDFKit's native text. Measurements are recorded in RENDERING.md and PERFORMANCE.md. Full idle/GPU/energy measurements and targeted scanned/illustrated fixtures remain to be added. No third-party dependencies or system-level environment changes were introduced.

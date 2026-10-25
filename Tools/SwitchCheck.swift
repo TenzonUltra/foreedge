@@ -15,11 +15,8 @@ enum SwitchCheck {
         session.registerFolder(folder)
         try await wait { !session.isScanning }
         let scanMS = (ProcessInfo.processInfo.systemUptime - scanStart) * 1000
-        let names = ["Sample-A.pdf", "Sample-B.pdf", "Sample-C.pdf"]
-        let records = try names.map { name -> BookRecord in
-            guard let record = session.library.books.first(where: { $0.title == name }) else { throw Failure(message: "Missing sample book: \(name)") }
-            return record
-        }
+        let records = Array(session.library.books.sorted { $0.id.uuidString < $1.id.uuidString }.prefix(3))
+        guard records.count == 3 else { throw Failure(message: "The sample folder must contain at least three PDFs") }
         let view = ReaderPDFView(frame: CGRect(x: 0, y: 0, width: 820, height: 900))
         view.displayMode = .singlePageContinuous; view.displayDirection = .vertical; view.displayBox = .mediaBox
         let window = NSWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
@@ -45,7 +42,7 @@ enum SwitchCheck {
                     guard let actual = session.captureLocation(), let saved = expected[record.id],
                           actual.page == saved.page, abs(actual.y - saved.y) < 0.025 else { throw Failure(message: "Reading position was not restored") }
                 }
-                samples.append(["book": record.title, "pages": book.pageCount, "cached": session.lastOpenUsedCache,
+                samples.append(["sample": index + 1, "pages": book.pageCount, "cached": session.lastOpenUsedCache,
                     "request_to_ready_ms_including_polling": readyMS, "assign_and_restore_cpu_ms": assignMS])
             }
         }
@@ -55,8 +52,8 @@ enum SwitchCheck {
             "samples": samples,
             "limits": "CPU-side operation intervals only; ready time includes 2 ms polling. No first-frame, GPU, total memory or scrolling claim. Native PDFView only; paper appearance unchanged by this work."]
         try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]).write(to: output.appendingPathComponent("results.json"))
-        print("Discovered \(session.library.books.count) real PDFs. Cold/warm switching and independent position restoration passed for Sample A, Sample B, and Sample C. Cache: \(session.documentPool.count) documents.")
-        for sample in samples { print("\(sample["book"]!) cached=\(sample["cached"]!) ready=\(sample["request_to_ready_ms_including_polling"]!) ms") }
+        print("Discovered \(session.library.books.count) PDFs. Cold/warm switching and independent position restoration passed for three samples. Cache: \(session.documentPool.count) documents.")
+        for sample in samples { print("sample=\(sample["sample"]!) cached=\(sample["cached"]!) ready=\(sample["request_to_ready_ms_including_polling"]!) ms") }
     }
     @MainActor static func wait(_ condition: () -> Bool) async throws {
         let deadline = Date().addingTimeInterval(30)

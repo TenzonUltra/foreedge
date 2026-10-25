@@ -16,7 +16,7 @@ import CSQLite
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("Foreedge-references-\(UUID())")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let urls = ["Topology", "Geometry"].map { directory.appendingPathComponent($0 + ".pdf") }
+        let urls = ["Document A", "Document B"].map { directory.appendingPathComponent($0 + ".pdf") }
         for url in urls {
             let document = PDFDocument()
             for _ in 0..<12 { document.insert(try BaselineDocument.make().page(at: 0)!, at: document.pageCount) }
