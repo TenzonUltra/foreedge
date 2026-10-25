@@ -34,7 +34,7 @@ enum BaselineDocument {
             CTLineDraw(CTLineCreateWithAttributedString(attributed), context)
         }
 
-        line("P A P E R M A N   /   R E N D E R I N G   S T U D Y   0 1", at: 724, size: 9, font: "Helvetica", gray: 0.4)
+        line("F O R E E D G E   /   R E N D E R I N G   S T U D Y   0 1", at: 724, size: 9, font: "Helvetica", gray: 0.4)
         line("A quiet page", at: 669, size: 32)
         line("The same page. A different surface.", at: 640, size: 11, font: "Helvetica", gray: 0.4)
 
